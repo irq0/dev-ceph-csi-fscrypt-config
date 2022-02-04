@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -x
+set -e
+
+export ENV_CSI_IMAGE_NAME=cephfscrypt:5000/cephcsi
+
+(
+    cd $HOME/WORKSPACE/ceph-csi
+    make image-cephcsi
+)
+
+podman tag cephfscrypt:5000/cephcsi:canary cephfscrypt:5000/cephcsi:latest
+podman push --tls-verify=false cephfscrypt:5000/cephcsi:latest
+kcli ssh cephfscrypt 'k3s ctr images pull cephfscrypt:5000/cephcsi:latest --plain-http'

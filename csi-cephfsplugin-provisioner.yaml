@@ -106,6 +106,7 @@ spec:
         - name: csi-cephfsplugin
           # for stable functionality replace canary with latest release version
           image: cephfscrypt:5000/cephcsi:canary
+          imagePullPolicy: Always
           args:
             - "--nodeid=$(NODE_ID)"
             - "--type=cephfs"
@@ -145,6 +146,7 @@ spec:
               mountPath: /tmp/csi/keys
         - name: liveness-prometheus
           image: cephfscrypt:5000/cephcsi:canary
+          imagePullPolicy: Always
           args:
             - "--type=liveness"
             - "--endpoint=$(CSI_ENDPOINT)"

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -x
+
+sudo systemctl start libvirtd
+sudo virsh net-start default
+kcli list plans
+kcli list vms
+
+##kcli create vm -i opensuse -P memory=4096 -P numcpus=4 -P disks='[{"size": 30, "interface": "sata"}, {"size": 5, "interface": "sata"}]' cephfscrypt
+
+kcli start vm cephfscrypt
+
+echo "Start ceph cluster: "
+echo "MDS=1 MON=1 OSD=1 MGR=1 ../src/vstart.sh --new -x --debug --localhost --bluestore -i 192.168.122.1 --without-dashboard"
+
+echo "Deploy kube config"

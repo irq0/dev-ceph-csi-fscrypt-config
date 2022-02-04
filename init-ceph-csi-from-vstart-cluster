@@ -1,0 +1,108 @@
+#!/bin/bash
+
+set -x
+
+
+ceph () {
+    "$HOME/WORKSPACE/ceph/build/bin/ceph" \
+	-c "$HOME/WORKSPACE/ceph/build/ceph.conf" \
+	"$@"
+}
+
+KEY="$(ceph auth get-key client.admin)"
+kubectl create secret generic csi-cephfs-secret \
+	--from-literal=userID=admin \
+	--from-literal=userKey="$KEY" \
+	--from-literal=adminID=admin \
+	--from-literal=adminKey="$KEY"
+
+FSID="$(ceph fsid)"
+# Node: format must be <hostname/ip>:port. Checking done by
+# mount.cephfs error 'failed to resolve source
+MON="$(ceph mon dump --format json | jq -r '.mons[] | .addr' | sed -e 's/\/0//')"
+
+kubectl create -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "$FSID",
+        "monitors": [
+           "$MON"
+        ]
+      }
+    ]
+metadata:
+  name: ceph-csi-config
+EOF
+
+
+kubectl create -f- <<EOF
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  ceph.conf: |
+$(ceph config generate-minimal-conf | awk '/^[^#]/ { print "   ", $0 }')
+    # Workaround for http://tracker.ceph.com/issues/23446
+    fuse_set_user_groups = false
+    # ceph-fuse which uses libfuse2 by default has write buffer size of 2KiB
+    # adding 'fuse_big_writes = true' option by default to override this limit
+    # see https://github.com/ceph/ceph-csi/issues/1928
+    fuse_big_writes = true
+  keyring: |
+$(ceph auth get client.admin  | awk '{ print "   ", $0 }')
+metadata:
+  name: ceph-config
+EOF
+
+
+
+kubectl create -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-cephfs-sc
+provisioner: cephfs.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  fsName: $(ceph fs ls --format=json | jq -r '.[0]["name"]')
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: default
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: default
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: default
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+EOF
+
+
+kubectl create -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-cephfs-sc-fscrypt-dummy
+provisioner: cephfs.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  fsName: $(ceph fs ls --format=json | jq -r '.[0]["name"]')
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: default
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: default
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: default
+  kernelMountOptions: test_dummy_encryption
+  mounter: kernel
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+EOF

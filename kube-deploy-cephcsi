@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -x
+
+./init-ceph-csi-from-vstart-cluster
+
+objects=(csi-provisioner-rbac csi-nodeplugin-rbac csi-cephfsplugin-provisioner csi-cephfsplugin)
+
+for obj in "${objects[@]}"; do
+	kubectl create -f "./$obj.yaml"
+done

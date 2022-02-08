@@ -70,6 +70,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: CSI_ENDPOINT
               value: unix:///csi/csi.sock
           imagePullPolicy: "IfNotPresent"
@@ -98,6 +102,8 @@ spec:
               mountPath: /etc/ceph/
             - name: ceph-csi-config
               mountPath: /etc/ceph-csi-config/
+            - name: ceph-csi-encryption-kms-config
+              mountPath: /etc/ceph-csi-encryption-kms-config/
             - name: keys-tmp-dir
               mountPath: /tmp/csi/keys
         - name: liveness-prometheus
@@ -161,6 +167,9 @@ spec:
         - name: ceph-csi-config
           configMap:
             name: ceph-csi-config
+        - name: ceph-csi-encryption-kms-config
+          configMap:
+            name: ceph-csi-encryption-kms-config
         - name: keys-tmp-dir
           emptyDir: {
             medium: "Memory"

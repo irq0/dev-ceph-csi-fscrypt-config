@@ -1,0 +1,82 @@
+#!/bin/bash
+
+set -x
+
+ceph () {
+    "$HOME/WORKSPACE/ceph/build/bin/ceph" \
+	-c "$HOME/WORKSPACE/ceph/build/ceph.conf" \
+	"$@" 2>/dev/null
+}
+FSID="$(ceph fsid)"
+
+kubectl create -f- <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cephfs-storage-encryption-secret
+stringData:
+  encryptionPassphrase: foobar
+EOF
+
+
+# fallback place for ceph-csi to look if the one below (/etc/..) does not exist
+kubectl create -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  user-ns-secrets-metadata: |-
+     {
+        "encryptionKMSType": "metadata",
+        "secretName": "cephfs-storage-encryption-secret",
+        "secretNamespace": "default"
+     }
+metadata:
+  name: csi-kms-connection-details
+EOF
+
+# mapped to /etc/ceph-csi-encryption-kms-config/config.json
+kubectl create -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+      {
+      "user-ns-secrets-metadata": {
+          "encryptionKMSType": "metadata",
+          "secretName": "cephfs-storage-encryption-secret",
+          "secretNamespace": "default"
+          }
+      }
+metadata:
+  name: ceph-csi-encryption-kms-config
+EOF
+
+
+kubectl create -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-cephfs-sc-encrypted
+provisioner: cephfs.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  fsName: $(ceph fs ls --format=json | jq -r '.[0]["name"]')
+
+  encrypted: "true"
+  secretName: "cephfs-storage-encryption-secret"
+  encryptionKMSID: "user-ns-secrets-metadata"
+  secretNamespace: "default"
+  encryptionKMSType: "metadata"
+
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: default
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: default
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: default
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+EOF

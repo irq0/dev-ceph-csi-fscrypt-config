@@ -1,0 +1,40 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-cephfs-csi-encrypted-sc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-cephfs-sc-encrypted
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-encrypted-sc
+  labels:
+    app: demo-encrypted-sc
+spec:
+  selector:
+    matchLabels:
+      app: demo-encrypted-sc
+  template:
+    metadata:
+      labels:
+        app: demo-encrypted-sc
+    spec:
+      containers:
+        - image: cephfscrypt:5000/fscrypt-tumbleweed:latest
+          name: main
+          command: ["sleep", "infinity"]
+          volumeMounts:
+            - mountPath: /foo
+              name: pvc-cephfs
+      volumes:
+        - name: pvc-cephfs
+          persistentVolumeClaim:
+            claimName: pvc-cephfs-csi-encrypted-sc
+            readOnly: false

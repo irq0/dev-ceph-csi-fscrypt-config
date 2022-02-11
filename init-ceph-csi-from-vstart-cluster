@@ -6,7 +6,7 @@ set -x
 ceph () {
     "$HOME/WORKSPACE/ceph/build/bin/ceph" \
 	-c "$HOME/WORKSPACE/ceph/build/ceph.conf" \
-	"$@"
+	"$@" 2>/dev/null
 }
 
 KEY="$(ceph auth get-key client.admin)"

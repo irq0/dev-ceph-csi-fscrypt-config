@@ -2,13 +2,26 @@
 
 set -x
 
+
+kubectl delete deployment demo-encrypted-sc
+
+(
+    kubectl delete pvc pvc-cephfs-csi-encrypted-sc
+    kubectl delete pv --all
+) &
+
 objects=(csi-cephfsplugin-provisioner csi-cephfsplugin csi-provisioner-rbac csi-nodeplugin-rbac)
 
 for obj in "${objects[@]}"; do
-	kubectl delete -f "./$obj.yaml"
+	kubectl delete -f "./$obj.yaml" &
 done
 
-kubectl delete configmap ceph-config
-kubectl delete configmap ceph-csi-config
-kubectl delete storageclass csi-cephfs-sc
-kubectl delete secret csi-cephfs-secret
+kubectl delete storageclass csi-cephfs-sc-fscrypt-dummy &
+kubectl delete configmap ceph-config &
+kubectl delete configmap ceph-csi-config &
+kubectl delete configmap csi-kms-connection-details &
+kubectl delete configmap ceph-csi-encryption-kms-config &
+kubectl delete storageclass csi-cephfs-sc &
+kubectl delete secret csi-cephfs-secret &
+kubectl delete secret cephfs-storage-encryption-secret &
+kubectl delete storageclass csi-cephfs-sc-encrypted &

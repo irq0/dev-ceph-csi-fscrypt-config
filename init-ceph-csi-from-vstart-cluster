@@ -20,6 +20,54 @@ FSID="$(ceph fsid)"
 # Node: format must be <hostname/ip>:port. Checking done by
 # mount.cephfs error 'failed to resolve source
 MON="$(ceph mon dump --format json | jq -r '.mons[] | .addr' | sed -e 's/\/0//')"
+MON2="$(ceph mon dump --format json | jq -r '.mons[] | .public_addrs[] | map(select(.type == "v2")) |.[].addr')"
+MON_ADDR="${MON2%:*}"
+MON_PORT="${MON2#*:}"
+
+
+# rook {{{
+kubectl create namespace rook-ceph
+kubectl delete --namespace rook-ceph secret rook-ceph-mon
+kubectl create --namespace rook-ceph secret generic rook-ceph-mon \
+	--from-literal=ceph-username=client.admin \
+	--from-literal=ceph-secret="$KEY"
+
+kubectl apply --namespace rook-ceph -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  csi-cluster-config-json: '[{"clusterID":"$FSID","monitors":["$MON2"]}]'
+  data: 'a=$MON2'
+metadata:
+  name: rook-ceph-mon-endpoints
+EOF
+
+kubectl apply --namespace rook-ceph -f- <<EOF
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: rook-ceph-mon
+subsets:
+  - addresses:
+      - ip: $MON_ADDR
+    ports:
+      - port: $MON_PORT
+EOF
+
+kubectl apply --namespace rook-ceph -f- <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: rook-ceph-mon
+spec:
+  clusterIP: None
+  ports:
+      - protocol: TCP
+        port: $MON_PORT
+        targetPort: $MON_PORT
+EOF
+
+# }}}
 
 kubectl create -f- <<EOF
 apiVersion: v1

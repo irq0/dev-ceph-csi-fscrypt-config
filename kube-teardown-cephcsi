@@ -25,3 +25,5 @@ kubectl delete storageclass csi-cephfs-sc &
 kubectl delete secret csi-cephfs-secret &
 kubectl delete secret cephfs-storage-encryption-secret &
 kubectl delete storageclass csi-cephfs-sc-encrypted &
+
+kubectl delete pod --force=true  --selector=app=demo-encrypted-sc

@@ -1,0 +1,20 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: toolbox
+  labels:
+    app: toolbox
+spec:
+  selector:
+    matchLabels:
+      app: toolbox
+  template:
+    metadata:
+      labels:
+        app: toolbox
+    spec:
+      containers:
+        - image: cephfscrypt:5000/fscrypt-tumbleweed:latest
+          name: main
+          command: ["sleep", "infinity"]

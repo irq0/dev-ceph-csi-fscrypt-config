@@ -1,0 +1,22 @@
+#!/bin/bash
+
+set -e
+set -x
+
+ceph () {
+    "$HOME/WORKSPACE/ceph/build/bin/ceph" \
+	-c "$HOME/WORKSPACE/ceph/build/ceph.conf" \
+	"$@" 2>/dev/null
+}
+
+rbd () {
+    "$HOME/WORKSPACE/ceph/build/bin/rbd" \
+	-c "$HOME/WORKSPACE/ceph/build/ceph.conf" \
+	"$@" 2>/dev/null
+}
+
+ceph osd pool create rbd
+ceph osd pool set rbd size 1  --yes-i-really-mean-it
+rbd pool init
+rbd ls
+ceph osd pool ls

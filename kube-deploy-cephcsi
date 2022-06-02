@@ -5,7 +5,10 @@ set -x
 ./init-ceph-csi-from-vstart-cluster
 ./init-ceph-csi-encrypted-storage-class
 
-objects=(csi-provisioner-rbac csi-nodeplugin-rbac csi-cephfsplugin-provisioner csi-cephfsplugin deployment-encrypted-sc)
+objects=(csi-provisioner-rbac csi-nodeplugin-rbac
+	 csi-cephfsplugin-provisioner csi-cephfsplugin
+	 csi-rbdplugin-provisioner csi-rbdplugin
+	 deployment-encrypted-sc)
 
 for obj in "${objects[@]}"; do
 	kubectl create -f "./$obj.yaml"

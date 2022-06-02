@@ -11,6 +11,18 @@ spec:
       storage: 1Gi
   storageClassName: csi-cephfs-sc-encrypted
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-rbd-csi-encrypted-sc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-rbd-sc-encrypted
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,10 +43,16 @@ spec:
           name: main
           command: ["sleep", "infinity"]
           volumeMounts:
-            - mountPath: /foo
+            - mountPath: /cephfs
               name: pvc-cephfs
+            - mountPath: /rbd
+              name: pvc-rbd
       volumes:
         - name: pvc-cephfs
           persistentVolumeClaim:
             claimName: pvc-cephfs-csi-encrypted-sc
+            readOnly: false
+        - name: pvc-rbd
+          persistentVolumeClaim:
+            claimName: pvc-rbd-csi-encrypted-sc
             readOnly: false

@@ -7,10 +7,13 @@ kubectl delete deployment demo-encrypted-sc
 
 (
     kubectl delete pvc pvc-cephfs-csi-encrypted-sc
+    kubectl delete pvc pvc-rbd-csi-encrypted-sc
     kubectl delete pv --all
 ) &
 
-objects=(csi-cephfsplugin-provisioner csi-cephfsplugin csi-provisioner-rbac csi-nodeplugin-rbac)
+objects=(csi-provisioner-rbac csi-nodeplugin-rbac
+	 csi-cephfsplugin-provisioner csi-cephfsplugin
+	 csi-rbdplugin-provisioner csi-rbdplugin)
 
 for obj in "${objects[@]}"; do
 	kubectl delete -f "./$obj.yaml" &
@@ -25,5 +28,6 @@ kubectl delete storageclass csi-cephfs-sc &
 kubectl delete secret csi-cephfs-secret &
 kubectl delete secret cephfs-storage-encryption-secret &
 kubectl delete storageclass csi-cephfs-sc-encrypted &
+kubectl delete storageclass csi-rbd-sc-encrypted &
 
 kubectl delete pod --force=true  --selector=app=demo-encrypted-sc

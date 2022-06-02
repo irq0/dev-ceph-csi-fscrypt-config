@@ -78,14 +78,13 @@ data:
       {
         "clusterID": "$FSID",
         "monitors": [
-           "$MON"
+           "$MON", "$MON2"
         ]
       }
     ]
 metadata:
   name: ceph-csi-config
 EOF
-
 
 kubectl create -f- <<EOF
 ---

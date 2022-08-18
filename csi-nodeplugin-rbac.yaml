@@ -26,7 +26,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: cephfs-csi-nodeplugin
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: ClusterRole
   name: cephfs-csi-nodeplugin
@@ -37,7 +37,7 @@ kind: ServiceAccount
 metadata:
   name: rbd-csi-nodeplugin
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -72,7 +72,7 @@ subjects:
   - kind: ServiceAccount
     name: rbd-csi-nodeplugin
     # replace with non-default namespace name
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: ClusterRole
   name: rbd-csi-nodeplugin

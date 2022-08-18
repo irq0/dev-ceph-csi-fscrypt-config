@@ -59,7 +59,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: cephfs-csi-provisioner
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: ClusterRole
   name: cephfs-external-provisioner-runner
@@ -70,7 +70,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
   name: cephfs-external-provisioner-cfg
 rules:
   # remove this once we stop supporting v1.0.0
@@ -87,12 +87,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cephfs-csi-provisioner-role-cfg
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
 subjects:
   - kind: ServiceAccount
     name: cephfs-csi-provisioner
     # replace with non-default namespace name
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: Role
   name: cephfs-external-provisioner-cfg
@@ -103,7 +103,7 @@ kind: ServiceAccount
 metadata:
   name: rbd-csi-provisioner
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
 
 ---
 kind: ClusterRole
@@ -171,7 +171,7 @@ subjects:
   - kind: ServiceAccount
     name: rbd-csi-provisioner
     # replace with non-default namespace name
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: ClusterRole
   name: rbd-external-provisioner-runner
@@ -182,7 +182,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
   name: rbd-external-provisioner-cfg
 rules:
   - apiGroups: [""]
@@ -198,12 +198,12 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: rbd-csi-provisioner-role-cfg
   # replace with non-default namespace name
-  namespace: default
+  namespace: irq0
 subjects:
   - kind: ServiceAccount
     name: rbd-csi-provisioner
     # replace with non-default namespace name
-    namespace: default
+    namespace: irq0
 roleRef:
   kind: Role
   name: rbd-external-provisioner-cfg

@@ -39,7 +39,7 @@ spec:
         app: demo-encrypted-sc
     spec:
       containers:
-        - image: cephfscrypt:5000/fscrypt-tumbleweed:latest
+        - image: irq0/tumbleweed-with-fscrypt:canary
           name: main
           command: ["sleep", "infinity"]
           volumeMounts:

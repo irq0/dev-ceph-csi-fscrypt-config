@@ -13,6 +13,7 @@ K8S () {
 objects=(csi-provisioner-rbac csi-nodeplugin-rbac
 	 csi-cephfsplugin-provisioner csi-cephfsplugin
 	 csi-rbdplugin-provisioner csi-rbdplugin
+	 csi-nodeplugin-psp csi-provisioner-psp
 	 deployment-encrypted-sc)
 
 for obj in "${objects[@]}"; do

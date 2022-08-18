@@ -2,8 +2,13 @@
 
 set -x
 
-./init-ceph-csi-from-vstart-cluster
-./init-ceph-csi-encrypted-storage-class
+#./init-ceph-csi-from-vstart-cluster
+#./init-ceph-csi-encrypted-storage-class
+./init-ceph-csi-from-rook 
+
+K8S () {
+    kubectl --namespace irq0 "${@}"
+}
 
 objects=(csi-provisioner-rbac csi-nodeplugin-rbac
 	 csi-cephfsplugin-provisioner csi-cephfsplugin
@@ -11,5 +16,5 @@ objects=(csi-provisioner-rbac csi-nodeplugin-rbac
 	 deployment-encrypted-sc)
 
 for obj in "${objects[@]}"; do
-	kubectl create -f "./$obj.yaml"
+	K8S apply -f "./$obj.yaml"
 done

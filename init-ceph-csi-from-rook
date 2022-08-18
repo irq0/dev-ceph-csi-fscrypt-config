@@ -1,0 +1,160 @@
+#!/bin/bash
+
+set -x
+set -e
+
+ceph () {
+     kubectl exec --quiet=true --namespace rook-ceph -ti deployment/rook-ceph-tools -- bash -c "ceph $* 2>/dev/null"
+}
+
+KEY="$(ceph auth get-key client.admin)"
+
+kubectl create namespace irq0 || true
+
+K8S () {
+    kubectl --namespace irq0 "${@}"
+}
+
+K8S create secret generic csi-cephfs-secret \
+	--from-literal=userID=admin \
+	--from-literal=userKey="$KEY" \
+	--from-literal=adminID=admin \
+	--from-literal=adminKey="$KEY" || true
+
+FSID="rook-ceph"
+MON="$(ceph mon dump --format json | jq -r '.mons[] | .addr' | sed -e 's/\/0//')"
+MON2="$(ceph mon dump --format json | jq -r '.mons[] | .public_addrs[] | map(select(.type == "v2")) |.[].addr')"
+MON_ADDR="${MON2%:*}"
+MON_PORT="${MON2#*:}"
+CEPH_FS="$(ceph fs ls --format=json | jq -r '.[0]["name"]')"
+
+#set +e
+
+K8S apply -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+    [
+      {
+        "clusterID": "$FSID",
+        "monitors": [
+           "$MON", "$MON2"
+        ]
+      }
+    ]
+metadata:
+  name: ceph-csi-config
+EOF
+
+K8S apply -f- <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cephfs-storage-encryption-secret
+stringData:
+  encryptionPassphrase: foobar
+EOF
+
+
+K8S apply -f- <<EOF
+apiVersion: v1
+kind: ConfigMap
+data:
+  config.json: |-
+      {
+      "user-ns-secrets-metadata": {
+          "encryptionKMSType": "metadata",
+          "secretName": "cephfs-storage-encryption-secret",
+          "secretNamespace": "irq0"
+          }
+      }
+metadata:
+  name: ceph-csi-encryption-kms-config
+EOF
+
+
+K8S apply -f- <<EOF
+---
+apiVersion: v1
+kind: ConfigMap
+data:
+  ceph.conf: |
+$(ceph config generate-minimal-conf | awk '/^[^#]/ { print "   ", $0 }')
+    # Workaround for http://tracker.ceph.com/issues/23446
+    fuse_set_user_groups = false
+    # ceph-fuse which uses libfuse2 by default has write buffer size of 2KiB
+    # adding 'fuse_big_writes = true' option by default to override this limit
+    # see https://github.com/ceph/ceph-csi/issues/1928
+    fuse_big_writes = true
+  keyring: |
+$(ceph auth get client.admin  | awk '{ print "   ", $0 }')
+metadata:
+  name: ceph-config
+EOF
+
+
+K8S apply -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-cephfs-sc-encrypted
+provisioner: cephfs.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  fsName: myfs
+
+  encrypted: "true"
+  secretName: "cephfs-storage-encryption-secret"
+  encryptionKMSID: "user-ns-secrets-metadata"
+  secretNamespace: "irq0"
+  encryptionKMSType: "metadata"
+
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: irq0
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: irq0
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: irq0
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+EOF
+
+
+K8S apply -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-rbd-sc-encrypted
+provisioner: rbd.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  pool: replicapool
+  csi.storage.k8s.io/fstype: ext4
+  imageFeatures: "layering"
+
+  encrypted: "true"
+  encryptionType: "file"
+  secretName: "cephfs-storage-encryption-secret"
+  encryptionKMSID: "user-ns-secrets-metadata"
+  secretNamespace: "irq0"
+  encryptionKMSType: "metadata"
+
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: irq0
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: irq0
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: irq0
+
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+  - discard
+EOF
+

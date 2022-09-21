@@ -1,0 +1,76 @@
+#!/bin/bash
+
+set -x
+set -e
+
+K8S () {
+    kubectl --namespace irq0 "${@}"
+}
+
+: ${NUM_PODS_PVCS:=42}
+: ${NAME_PREFIX:=bomb-$RANDOM}
+: ${K8S_GROUP:=$NAME_PREFIX}
+
+for i in $(seq 1 ${NUM_PODS_PVCS}); do
+    pvc_name="pvc-$NAME_PREFIX-$i"
+    pod_name="$NAME_PREFIX-$i"
+    echo "Creating $pod_name $pvc_name"
+    (
+	K8S create -f- <<EOF
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: $pvc_name
+  labels:
+    group: $K8S_GROUP
+spec:
+  storageClassName: csi-rbd-sc-encrypted-block
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+EOF
+    
+	K8S create -f- <<EOF
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $pod_name
+  labels:
+    group: $K8S_GROUP
+spec:
+  terminationGracePeriodSeconds: 90
+  containers:
+  - name: vol
+    image: quay.io/quay/busybox
+    command: ["sh"]
+    args:
+     - "-x"
+     - "-c"
+     - |
+       hostname
+       date
+       echo foo > /vol/bar
+       find /vol
+       cat /vol/bar
+       sleep infinity
+    volumeMounts:
+    - name: vol
+      mountPath: /vol
+  volumes:
+    - name: vol
+      persistentVolumeClaim:
+        claimName: $pvc_name
+EOF
+	) &
+	
+done
+
+wait
+
+echo "Group label: $K8S_GROUP"
+echo "Delete with:"
+echo "kubectl delete pvc,pods --namespace irq0 -l group=$K8S_GROUP"

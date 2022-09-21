@@ -158,3 +158,35 @@ mountOptions:
   - discard
 EOF
 
+K8S apply -f- <<EOF
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-rbd-sc-encrypted-block
+provisioner: rbd.csi.ceph.com
+parameters:
+  clusterID: $FSID
+  pool: replicapool
+  csi.storage.k8s.io/fstype: ext4
+  imageFeatures: "layering"
+  imageFormat: "2"
+
+  encrypted: "true"
+  encryptionType: "block"
+  secretName: "cephfs-storage-encryption-secret"
+  encryptionKMSID: "user-ns-secrets-metadata"
+  secretNamespace: "irq0"
+  encryptionKMSType: "metadata"
+
+  csi.storage.k8s.io/provisioner-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/provisioner-secret-namespace: irq0
+  csi.storage.k8s.io/controller-expand-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/controller-expand-secret-namespace: irq0
+  csi.storage.k8s.io/node-stage-secret-name: csi-cephfs-secret
+  csi.storage.k8s.io/node-stage-secret-namespace: irq0
+
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+EOF
+

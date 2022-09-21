@@ -129,6 +129,9 @@ spec:
             - "--rbdhardmaxclonedepth=8"
             - "--rbdsoftmaxclonedepth=4"
             - "--enableprofiling=false"
+          resources:
+            limits:
+              memory: "512Mi"
           env:
             - name: POD_IP
               valueFrom:
@@ -178,6 +181,9 @@ spec:
             - "--v=5"
             - "--drivername=rbd.csi.ceph.com"
             - "--drivernamespace=$(DRIVER_NAMESPACE)"
+          resources:
+            limits:
+              memory: "1Gi"
           env:
             - name: DRIVER_NAMESPACE
               valueFrom:

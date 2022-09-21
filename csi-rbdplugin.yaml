@@ -65,6 +65,9 @@ spec:
             # and pass the label names below, for CSI to consume and advertise
             # its equivalent topology domain
             # - "--domainlabels=failure-domain/region,failure-domain/zone"
+          resources:
+            limits:
+              memory: "1Gi"
           env:
             - name: POD_IP
               valueFrom:

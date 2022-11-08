@@ -21,7 +21,8 @@ K8S create secret generic csi-cephfs-secret \
 	--from-literal=adminID=admin \
 	--from-literal=adminKey="$KEY" || true
 
-FSID="rook-ceph"
+#FSID="rook-ceph"
+FSID="$(ceph fsid | tr -d '[[:space:]]')"
 MON="$(ceph mon dump --format json | jq -r '.mons[] | .addr' | sed -e 's/\/0//')"
 MON2="$(ceph mon dump --format json | jq -r '.mons[] | .public_addrs[] | map(select(.type == "v2")) |.[].addr')"
 MON_ADDR="${MON2%:*}"

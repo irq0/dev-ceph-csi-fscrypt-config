@@ -39,7 +39,7 @@ spec:
         app: demo-encrypted-sc
     spec:
       containers:
-        - image: irq0/tumbleweed-with-fscrypt:canary
+        - image: quay.io/ceph/daemon:latest-main-devel
           name: main
           command: ["sleep", "infinity"]
           volumeMounts:
